@@ -237,7 +237,8 @@ int main(int argc, char** argv)
     sp::audio::Music::setVolume(50);
     new sp::audio::MusicPlayer("music");
     new IngameMenuScene();
-    openMainMenu();
+    //openMainMenu();
+    new Scene();
 
     engine->run();
 
