@@ -13,7 +13,7 @@
 #include <sp2/graphics/textureManager.h>
 #include <sp2/graphics/meshdata.h>
 #include <sp2/collision/2d/circle.h>
-#include <sp2/io/cameraCapture.h>
+#include <sp2/audio/sound.h>
 #include <sp2/scene/tilemap.h>
 
 
@@ -195,6 +195,7 @@ public:
                 auto pe = new sp::ParticleEmitter(getParent(), sp::string(num) + ".explosion.particles.txt");
                 pe->setPosition(d->getPosition2D());
                 d.destroy();
+                sp::audio::Sound::play("explosion.wav");
                 score += score_multiply;
                 score_multiply += 1.0;
                 camera_shake_time = 0.2;
@@ -328,6 +329,7 @@ Scene::~Scene()
 
 void Scene::addInput(int n)
 {
+    sp::audio::Sound::play(sp::string(n) + ".wav");
     inputs.add(new InputDigit(getRoot(), n));
     double x = (inputs.size() - 1) * -.5;
     double y = -18;
@@ -339,6 +341,8 @@ void Scene::addInput(int n)
 
 void Scene::fireString()
 {
+    if (inputs.empty()) return;
+    sp::audio::Sound::play("shoot.wav");
     for(auto i : inputs) {
         i->fire();
     }
