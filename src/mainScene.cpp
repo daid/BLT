@@ -2,6 +2,7 @@
 #include "ingameMenu.h"
 #include "main.h"
 
+#include <array>
 #include <sp2/graphics/gui/loader.h>
 #include <sp2/graphics/mesh/obj.h>
 #include <sp2/random.h>
@@ -77,8 +78,10 @@ public:
             indices.push_back(idx*2+1);
             indices.push_back(idx*2+2);
         }
-        
-        render_data.mesh = sp::MeshData::create(std::move(vertices), std::move(indices));
+        if (!render_data.mesh)
+            render_data.mesh = sp::MeshData::create(std::move(vertices), std::move(indices));
+        else
+            render_data.mesh->update(std::move(vertices), std::move(indices));
     }
 
 private:
@@ -221,6 +224,7 @@ static void showMessage(sp::string msg) {
     auto s = sp::P<Scene>(sp::Scene::get("MAIN"));
     s->message_overlay.destroy();
     s->message_overlay = new sp::Tilemap(s->getRoot(), "gui/theme/font.png", 1.0, 1.0, 16, 6);
+    s->message_overlay->setTilemapSpacingMargin(0.01, 0.0);
     int x = 0;
     int y = 0;
     int width = 0;
@@ -269,6 +273,7 @@ Scene::Scene()
     */
 
     auto bg = new sp::Tilemap(getRoot(), "gui/theme/font.png", 1.0, 1.0, 16, 6);
+    bg->setTilemapSpacingMargin(0.01, 0.0);
     bg->render_data.color = sp::HsvColor(120, 70, 20);
     sp::Image img;
     img.loadFromStream(sp::io::ResourceProvider::get("bg.png"));
@@ -279,6 +284,7 @@ Scene::Scene()
     bg->render_data.order = -2;
 
     bg_overlay = new sp::Tilemap(getRoot(), "gui/theme/font.png", 1.0, 1.0, 16, 6);
+    bg_overlay->setTilemapSpacingMargin(0.01, 0.0);
     bg_overlay->render_data.color.a = 0.0;
     img.loadFromStream(sp::io::ResourceProvider::get("bg_intro.png"));
     for(int y=0; y<img.getSize().y; y++)

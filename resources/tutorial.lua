@@ -1,6 +1,5 @@
 function sleep(x) for n=1,x do yield() end end
 
---[==[
 setOverlayAlpha(1.0)
 sleep(120)
 
@@ -88,7 +87,7 @@ ones and zeros
 into a bigger
 total]])
 sleep(300)
---]==]
+
 setFallSpeed(0.0)
 showMessage(
 [[How, I have
@@ -116,7 +115,8 @@ sleep(300)
 
 showMessage(
 [[Here are some
-practice numbers]])
+practice binaries]])
+setFallSpeed(0.05)
 for y=-2,2 do
     for x=-2,2 do
         spawn({x, y}, irandom(0, 1))
@@ -133,4 +133,11 @@ for the real work!
 
 (End of demo)]])
 sleep(120)
-victory()
+
+showMessage("")
+for y=-2,42 do
+    for x=-3,3 do
+        spawn({x, y}, irandom(0, 1))
+    end
+end
+setFallSpeed(0.3)
