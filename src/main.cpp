@@ -24,6 +24,7 @@
 
 #include "main.h"
 #include "mainScene.h"
+#include "levelSelect.h"
 #include "ingameMenu.h"
 
 
@@ -40,7 +41,7 @@ void openMainMenu()
     sp::P<sp::gui::Widget> menu = sp::gui::Loader::load("gui/main_menu.gui", "MAIN_MENU");
     menu->getWidgetWithID("START")->setEventCallback([=](sp::Variant v) mutable {
         menu.destroy();
-        new Scene();
+        new Scene("level1.lua");
     });
     menu->getWidgetWithID("OPTIONS")->setEventCallback([=](sp::Variant v) mutable {
         menu.destroy();
@@ -236,9 +237,10 @@ int main(int argc, char** argv)
 
     sp::audio::Music::setVolume(50);
     new sp::audio::MusicPlayer("music");
-    new IngameMenuScene();
+    //new IngameMenuScene();
     //openMainMenu();
-    new Scene();
+    new LevelSelectScene();
+    //new Scene("1.Easy.lua");
 
     engine->run();
 

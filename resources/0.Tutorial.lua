@@ -134,10 +134,4 @@ for the real work!
 (End of demo)]])
 sleep(120)
 
-showMessage("")
-for y=-2,42 do
-    for x=-3,3 do
-        spawn({x, y}, irandom(0, 1))
-    end
-end
-setFallSpeed(0.3)
+victory()

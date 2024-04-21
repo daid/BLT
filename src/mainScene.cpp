@@ -13,6 +13,7 @@
 #include <sp2/graphics/textureManager.h>
 #include <sp2/graphics/meshdata.h>
 #include <sp2/collision/2d/circle.h>
+#include <sp2/collision/2d/box.h>
 #include <sp2/audio/sound.h>
 #include <sp2/scene/tilemap.h>
 
@@ -170,7 +171,7 @@ public:
     }
 
     void fire() {
-        sp::collision::Circle2D shape(0.4);
+        sp::collision::Box2D shape{0.8, 2.0, 0, -0.5};
         shape.type = sp::collision::Shape::Type::Sensor;
         setCollisionShape(shape);
         setLinearVelocity(sp::Vector2d(0, initial_velocity));
@@ -200,7 +201,8 @@ public:
                 score_multiply += 1.0;
                 camera_shake_time = 0.2;
             } else {
-                score_multiply = std::min(1.0, score_multiply - 1.0);
+                int sub = score_multiply / 10 + 1;
+                score_multiply = std::max(1.0, score_multiply - sub);
             }
             delete this;
         }
@@ -221,7 +223,19 @@ static void spawn(sp::Vector2d pos, int num) {
     falling_y_min = std::min(falling_y_min, pos.y);
     falling_y_max = std::max(falling_y_max, pos.y);
 }
-static void showMessage(sp::string msg) {
+static void spawnImage(sp::string name) {
+    sp::Image img;
+    img.loadFromStream(sp::io::ResourceProvider::get(name));
+    for(int y=0; y<img.getSize().y; y++) {
+        for(int x=0; x<img.getSize().x; x++) {
+            auto c = img.getPtr()[x+y*img.getSize().x];
+            if (c & 0xFF000000) {
+                spawn({double(x) - img.getSize().x * .5, img.getSize().y - y - 1}, (c & 0xFF) ? 1 : 0);
+            }
+        }
+    }
+}
+static void showMessage(sp::string msg, bool lower) {
     auto s = sp::P<Scene>(sp::Scene::get("MAIN"));
     s->message_overlay.destroy();
     s->message_overlay = new sp::Tilemap(s->getRoot(), "gui/theme/font.png", 1.0, 1.0, 16, 6);
@@ -238,7 +252,21 @@ static void showMessage(sp::string msg) {
             width = std::max(width, x);
         }
     }
-    s->message_overlay->setPosition(sp::Vector2d(width * -.5, 10 + y * -.5));
+    if (lower)
+        s->message_overlay->setPosition(sp::Vector2d(width * -.5, -10 + y * -.5));
+    else
+        s->message_overlay->setPosition(sp::Vector2d(width * -.5, 10 + y * -.5));
+}
+static void victory() {
+    auto s = sp::P<Scene>(sp::Scene::get("MAIN"));
+    auto victory_display = new sp::Tilemap(s->getRoot(), "gui/theme/font.png", 2.3, 2.3, 16, 6);
+    victory_display->setTilemapSpacingMargin(0.01, 0.0);
+    victory_display->setPosition({2.3*-.5, 0});
+    victory_display->setRotation(sp::random(-20, 20));
+    int x = -3;
+    for(auto c : "VICTORY")
+        victory_display->setTile({x++, 0}, c - 0x20);
+    s->exit_level_timer.start(5.0);
 }
 static sp::string getInput() {
     auto s = sp::P<Scene>(sp::Scene::get("MAIN"));
@@ -253,25 +281,14 @@ static void clearInput() {
         i.destroy();
 }
 
-Scene::Scene()
+Scene::Scene(sp::string level_script)
 : sp::Scene("MAIN")
 {
-    sp::Scene::get("INGAME_MENU")->enable();
+    //sp::Scene::get("INGAME_MENU")->enable();
 
     auto camera = new sp::Camera(getRoot());
     camera->setOrtographic(20.0);
     setDefaultCamera(camera);
-
-    /*
-    for(int y=0; y<32; y++) {
-        for(int x=0; x<8; x++) {
-            auto fd = new FallingDigit(getRoot(), sp::irandom(0, 1));
-            fd->setPosition({x - 4.0, y + 10.0});
-            fd->setPosition({x - 4.0, y - 8.0});
-            //fd->setPosition({x - 4.0, y + 38.0});
-        }
-    }
-    */
 
     auto bg = new sp::Tilemap(getRoot(), "gui/theme/font.png", 1.0, 1.0, 16, 6);
     bg->setTilemapSpacingMargin(0.01, 0.0);
@@ -283,6 +300,13 @@ Scene::Scene()
             bg->setTile({x, img.getSize().y - y - 1}, (img.getPtr()[x+y*img.getSize().x] & 0xFF) != 0 ? 17 : 16);
     bg->setPosition(sp::Vector2d(-img.getSize().x / 2, -img.getSize().y / 2));
     bg->render_data.order = -2;
+
+    auto lines = new sp::Tilemap(getRoot(), "gui/theme/font.png", 1.0, 1.0, 16, 6);
+    lines->setTilemapSpacingMargin(0.01, 0.0);
+    for(int x=-10; x<10; x++) {
+        lines->setTile({x, 1}, '_' - 0x20);
+    }
+    lines->setPosition({0, -18.4});
 
     bg_overlay = new sp::Tilemap(getRoot(), "gui/theme/font.png", 1.0, 1.0, 16, 6);
     bg_overlay->setTilemapSpacingMargin(0.01, 0.0);
@@ -306,25 +330,39 @@ Scene::Scene()
     score_multiply = 1.0;
     camera_shake_time = 0.0;
 
+    score_display = new sp::Tilemap(getRoot(), "gui/theme/font.png", 1.8, 1.8, 16, 6);
+    score_display->setTilemapSpacingMargin(0.01, 0.0);
+    score_display->setRotation(80);
+    score_display->setPosition({-8, 17});
+    score_display->setTile({0, 0}, 16);
+    multiplier_display = new sp::Tilemap(getRoot(), "gui/theme/font.png", 1.2, 1.2, 16, 6);
+    multiplier_display->setTilemapSpacingMargin(0.01, 0.0);
+    multiplier_display->setRotation(80);
+    multiplier_display->setPosition({-6.5, 17});
+    multiplier_display->setTile({0, 0}, 'x' - 0x20);
+    multiplier_display->setTile({-1, 0}, 16);
+
     env = new sp::script::Environment();
     env->setGlobal("yield", [](lua_State* L) { return lua_yield(L, 0); });
     env->setGlobal("setOverlayAlpha", setOverlayAlpha);
     env->setGlobal("setFallSpeed", setFallSpeed);
     env->setGlobal("spawn", spawn);
+    env->setGlobal("spawnImage", spawnImage);
     env->setGlobal("getMinY", getMinY);
     env->setGlobal("getMaxY", getMaxY);
     env->setGlobal("getInput", getInput);
     env->setGlobal("clearInput", clearInput);
     env->setGlobal("showMessage", showMessage);
+    env->setGlobal("victory", victory);
     env->setGlobal("random", sp::random);
     env->setGlobal("irandom", sp::irandom);
 
-    coroutine = env->loadCoroutine("tutorial.lua").value();
+    coroutine = env->loadCoroutine(level_script).value();
 }
 
 Scene::~Scene()
 {
-    sp::Scene::get("INGAME_MENU")->disable();
+    //sp::Scene::get("INGAME_MENU")->disable();
 }
 
 void Scene::addInput(int n)
@@ -355,6 +393,48 @@ void Scene::onFixedUpdate()
         if (!coroutine->resume().value())
             coroutine = nullptr;
     }
+    if (score_display_value < score) {
+        score_display_value += 1;
+        score_display_value += (score - score_display_value) / 20;
+        score_display_pulse_timer.start(0.3);
+        int num = score_display_value;
+        int x = 0;
+        do {
+            score_display->setTile({x, 0}, (num % 10) + 16);
+            num /= 10;
+            x -= 1;
+        } while(num > 0);
+    }
+    score_display_pulse_timer.isExpired();
+    if (score_display_pulse_timer.isRunning()) {
+        auto f = sp::Tween<float>::easeOutCubic(score_display_pulse_timer.getProgress(), 0.0, 1.0, sp::random(2.0, 1.0), 1.0);
+        score_display->render_data.scale = {f, f, f};
+    } else {
+        score_display->render_data.scale = {1.0f, 1.0f, 1.0f};
+    }
+
+    if (multiplier_display_value != int(score_multiply)) {
+        if (multiplier_display_value < score_multiply)
+            multiplier_display_pulse_timer.start(0.3);
+        multiplier_display_value = score_multiply;
+        multiplier_display->setTile({0, 0}, 'x' - 0x20);
+        int num = multiplier_display_value;
+        int x = -1;
+        do {
+            multiplier_display->setTile({x, 0}, (num % 10) + 16);
+            num /= 10;
+            x -= 1;
+        } while(num > 0);
+        for(int n=0; n<4; n++)
+            multiplier_display->setTile({x--, 0}, -1);
+    }
+    multiplier_display_pulse_timer.isExpired();
+    if (multiplier_display_pulse_timer.isRunning()) {
+        auto f = sp::Tween<float>::easeOutCubic(multiplier_display_pulse_timer.getProgress(), 0.0, 1.0, sp::random(2.0, 1.0), 1.0);
+        multiplier_display->render_data.scale = {f, f, f};
+    } else {
+        multiplier_display->render_data.scale = {1.0f, 1.0f, 1.0f};
+    }
 }
 
 void Scene::onUpdate(float delta)
@@ -381,6 +461,7 @@ void Scene::onUpdate(float delta)
         }
         if (falling_y_min < -17.0) {
             game_over = true;
+            sp::audio::Sound::play("explosion.wav");
             for(sp::P<FallingDigit> fd : getRoot()->getChildren()) {
                 if (fd)
                     new Trail(getRoot(), fd);
@@ -388,6 +469,27 @@ void Scene::onUpdate(float delta)
             for(auto i : inputs)
                 i.destroy();
         }
+    } else {
+        int left = 0;
+        for(sp::P<FallingDigit> fd : getRoot()->getChildren()) {
+            if (fd)
+                left += 1;
+        }
+        if (!left && !game_over_display) {
+            game_over_display = new sp::Tilemap(getRoot(), "gui/theme/font.png", 2.3, 2.3, 16, 6);
+            game_over_display->setTilemapSpacingMargin(0.01, 0.0);
+            game_over_display->setPosition({2.3*-.5, 0});
+            game_over_display->setRotation(sp::random(-20, 20));
+            int x = -4;
+            for(auto c : "GAME OVER")
+                game_over_display->setTile({x++, 0}, c - 0x20);
+            exit_level_timer.start(5.0);
+        }
+    }
+    if (exit_level_timer.isExpired()) {
+        sp::Scene::get("LEVEL_SELECT")->enable();
+        delete this;
+        return;
     }
 }
 

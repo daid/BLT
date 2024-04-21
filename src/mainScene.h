@@ -4,13 +4,14 @@
 #include <sp2/scene/scene.h>
 #include <sp2/scene/tilemap.h>
 #include <sp2/script/environment.h>
+#include <sp2/timer.h>
 
 
 class InputDigit;
 class Scene : public sp::Scene
 {
 public:
-    Scene();
+    Scene(sp::string level_script);
     ~Scene();
 
     void updateCamera();
@@ -27,9 +28,19 @@ public:
 
     sp::P<sp::Tilemap> bg_overlay;
     sp::P<sp::Tilemap> message_overlay;
+    sp::P<sp::Tilemap> score_display;
+    sp::P<sp::Tilemap> multiplier_display;
+    sp::P<sp::Tilemap> game_over_display;
     sp::PList<InputDigit> inputs;
     sp::P<sp::script::Environment> env;
     sp::script::CoroutinePtr coroutine;
+
+    int score_display_value = 0;
+    sp::Timer score_display_pulse_timer;
+    int multiplier_display_value = 0;
+    sp::Timer multiplier_display_pulse_timer;
+
+    sp::Timer exit_level_timer;
 };
 
 #endif//MAIN_SCENE_H
