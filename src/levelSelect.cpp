@@ -47,12 +47,13 @@ LevelSelectScene::LevelSelectScene()
     level_select->setTilemapSpacingMargin(0.01, 0.0);
 
     levels = sp::io::ResourceProvider::find("*.lua");
-    for(auto& level : levels)
+    for(auto& level : levels) {
         level = level.substr(0, level.find_last_of("."));
+    }
     std::sort(levels.begin(), levels.end());
     int y = 0;
     for(const auto& level : levels) {
-        x = -level.size() / 2;
+        x = -int(level.size()) / 2;
         for(auto c : level) {
             level_select->setTile({x++, y}, c - 0x20);
         }

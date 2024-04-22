@@ -230,7 +230,7 @@ static void spawnImage(sp::string name) {
         for(int x=0; x<img.getSize().x; x++) {
             auto c = img.getPtr()[x+y*img.getSize().x];
             if (c & 0xFF000000) {
-                spawn({double(x) - img.getSize().x * .5, img.getSize().y - y - 1}, (c & 0xFF) ? 1 : 0);
+                spawn({double(x) - img.getSize().x * .5, double(img.getSize().y - y - 1)}, (c & 0xFF) ? 1 : 0);
             }
         }
     }
